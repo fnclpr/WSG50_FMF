@@ -1,5 +1,5 @@
 wsg_50_gl:
-  type: robot_mechanism_controllers/JointPositionController
+  type: position_controllers/JointPositionController
   joint: base_joint_gripper_left
   pid:
     p: 100.0

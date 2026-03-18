@@ -18,9 +18,9 @@
       <inertial>
           <mass value="0.25" />
           <origin xyz="0 0 0" />
-     	  <!--inertia ixx="1.0" ixy="0.0" ixz="0.0"
+     	  <inertia ixx="1.0" ixy="0.0" ixz="0.0"
                iyy="100.0" iyz="0.0" 
-               izz="1.0" /-->
+               izz="1.0" />
       	  <inertia  ixx="1.0" ixy="0.0"  ixz="0.0"  iyy="1.0"  iyz="0.0"  izz="1.0" />
       </inertial>
 
@@ -53,7 +53,7 @@
 
   <joint name="${name}_base_joint_gripper_left" type="prismatic">
      <limit lower="-0.055" upper="-0.0027" effort="1.0" velocity="1.0"/>
-     <origin xyz="0 0 0" rpy="0 0 0" />      <!--origin xyz="-0.0067 0 0.049" rpy="0 0 0" /-->
+     <origin xyz="0 0 0" rpy="0 0 0" />   <!--origin xyz="-0.0067 0 0.049" rpy="0 0 0" /-->
      <parent link="${name}_base_link"/>
      <child link="${name}_gripper_left" />
      <dynamics friction="100" damping="100" />
@@ -61,12 +61,18 @@
      <limit effort="100" velocity="100"/>
   </joint>
 
-  <transmission name="${name}_base_trans_left" type="pr2_mechanism_model/SimpleTransmission">
-     <actuator name="${name}_base_motor_left" />
-     <joint name="${name}_base_joint_gripper_left" />
-     <mechanicalReduction>1</mechanicalReduction>
-     <motorTorqueConstant>1</motorTorqueConstant>
-  </transmission>
+    <transmission name="${name}_base_trans_left">
+        <type>transmission_interface/SimpleTransmission</type>
+
+        <joint name="${name}_base_joint_gripper_left">
+            <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+        </joint>
+
+        <actuator name="${name}_base_motor_left">
+            <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
 
   <link name="${name}_gripper_left">
       <inertial>
@@ -83,8 +89,8 @@
              <mesh filename="package://wsg50_simulation/meshes/GUIDE_WSG50_110.stl" scale="0.001 0.001 0.001"/>
 	     <!--box size="0.0175 0.03 0.024"/-->
           </geometry>
-          <material name="black">
-		<color rgba="0 0 0 0"/>
+                    <material name="left_blue">
+                        <color rgba="0.2 0.4 0.9 1"/>
       	  </material>
       </visual>
 
@@ -129,8 +135,8 @@
           <geometry>
              <mesh filename="package://wsg50_simulation/meshes/WSG-FMF.stl" scale="0.001 0.001 0.001"/>
           </geometry>
-          <material name="black">
-		<color rgba="0 0 0 0"/>
+                    <material name="left_blue">
+                <color rgba="0.2 0.4 0.9 1"/>
       	  </material>
       </visual>
 
@@ -161,12 +167,19 @@
      <limit effort="100" velocity="100"/>
   </joint>
 
-  <transmission name="${name}_base_trans_right" type="pr2_mechanism_model/SimpleTransmission">
-     <actuator name="${name}_base_motor_right" />
-     <joint name="${name}_base_joint_gripper_right" />
-     <mechanicalReduction>1</mechanicalReduction>
-     <motorTorqueConstant>1</motorTorqueConstant>
-  </transmission>
+    <transmission name="${name}_base_trans_right">
+        <type>transmission_interface/SimpleTransmission</type>
+
+        <joint name="${name}_base_joint_gripper_right">
+            <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+        </joint>
+
+        <actuator name="${name}_base_motor_right">
+            <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+    
 	
     <link name="${name}_gripper_right">
       <inertial>
@@ -183,8 +196,8 @@
              <mesh filename="package://wsg50_simulation/meshes/GUIDE_WSG50_110.stl" scale="0.001 0.001 0.001"/>
 	     <!--box size="0.0175 0.03 0.024"/-->
           </geometry>
-          <material name="black">
-		<color rgba="0 0 0 0"/>
+                    <material name="right_white">
+                <color rgba="1 1 1 1"/>
       	  </material>
       </visual>
 
@@ -198,7 +211,7 @@
      <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
   </link>
 
-  <gazebo reference="gripper_right">
+    <gazebo reference="${name}_gripper_right">
     <material>Gazebo/White</material>
     <turnGravityOff>false</turnGravityOff>
   </gazebo>
@@ -228,8 +241,8 @@
           <geometry>
              <mesh filename="package://wsg50_simulation/meshes/WSG-FMF.stl" scale="0.001 0.001 0.001"/>
           </geometry>
-          <material name="black">
-		<color rgba="0 0 0 0"/>
+                    <material name="right_white">
+                <color rgba="1 1 1 1"/>
       	  </material>
       </visual>
 
