@@ -30,124 +30,156 @@
  * \brief WSG-50 sim driver.
  */
 
-#include <ros/ros.h>
-#include <wsg50_common/Move.h>
-#include <wsg50_common/Incr.h>
-#include <std_msgs/Float64.h>
-#include <std_srvs/Empty.h>
+/* wsg_50_sim_driver (ROS 2 Jazzy)
+ * Migrated from ROS 1
+ * \brief WSG-50 sim driver.
+ */
+
+#include <rclcpp/rclcpp.hpp>
+#include <std_msgs/Float64.hpp>
+#include <std_msgs/String.hpp>
+#include <std_srvs/Empty.hpp>
+
+#include <wsg50_common/srv/move.hpp>
+#include <wsg50_common/srv/incr.hpp>
 
 #define GRIPPER_MAX_OPEN 110.0
 #define GRIPPER_MIN_OPEN 0.0
 
-using namespace std;
 
-ros::Publisher vel_pub_r_, vel_pub_l_;
-ros::ServiceClient moveSC;
-double currentOpenning;
+class WSG59SimDriver : public rclcpp::Node {
+	public:
+		WSG50SimDriver() : Node("wsg_50_sim_driver"), current_opening_(0.0) {
+			// parameters
+			this->declare_parameter<std::string>("vel_pub_l_topic", "/wsg_50_gl/command");
+			this->declare_parameter<std::string>("vel_pub_r_topic", "/wsg_50_gr/command");
+			
+			std_msgs::String vel_pub_l_topic = this->get_parameter("vel_pub_l_topic").as_string();
+    		std_msgs::String vel_pub_r_topic = this->get_parameter("vel_pub_r_topic").as_string();
 
-void move(double width){
+			// Publishers
+			vel_pub_l_ = this->create_publisher<std_msgs::msg::Float64>(vel_pub_l_topic, 10);
+			vel_pub_r_ = this->create_publisher<std_msgs::msg::Float64>(vel_pub_r_topic, 10);
+
+			// Service Servers
+			move_ss_ = this->create_service<wsg50_common::srv::Move>(
+				"move",
+				std::bind(
+					&Wsg50SimDriver::moveSrv,
+					this,
+					std::placeholders::_1,
+					std::placeholders::_2
+				)
+			);
+
+			move_inc_ss_ = this->create_service<wsg50_common::srv::Incr>(
+				"move_incrementally",
+				std::bind(
+					&Wsg50SimDriver::moveIncrementallySrv,
+					this,
+					std::placeholders::_1,
+					std::placeholders::_2
+				)
+			);
+
+			homing_ss_ = this->create_service<std_srvs::srv::Empty>(
+				"homing",
+				std::bind(
+					&Wsg50SimDriver::homingSrv,
+					this,
+					std::placeholders::_1,
+					std::placeholders::_2
+				)
+			);
+
+			grasp_ss_ = this->create_service<wsg50_common::srv::Move>(
+				"grasp",
+				std::bind(
+					&Wsg50SimDriver::graspSrv,
+					this,
+					std::placeholders::_1,
+					std::placeholders::_2
+				)
+			);			
+			RCLCPP_INFO(this->get_logger(), "WSG-50 Sim Driver Node Started.");
+		}
 	
-		double open = width / 2;
+	private:
+		rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr vel_pub_l_;
+		rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr vel_pub_r_;
 		
-		std_msgs::Float64 lCommand, rCommand;
-		
-		rCommand.data = open/1000;
-		lCommand.data = rCommand.data * -1.0;
-		
-		vel_pub_r_.publish(rCommand);
-		vel_pub_l_.publish(lCommand);
-		
-		currentOpenning = width;
-	
-}
+		rclcpp::Service<wsg50_common::srv::Move>::SharedPtr move_ss_;
+		rclcpp::Service<wsg50_common::srv::Incr>::SharedPtr move_inc_ss_;
+		rclcpp::Service<std_srvs::srv::Empty>::SharedPtr homing_ss_;
+		rclcpp::Service<wsg50_common::srv::Move>::SharedPtr grasp_ss_;
 
-bool moveSrv(wsg50_common::Move::Request &req, wsg50_common::Move::Response &res)
-{
-	if ( req.width >= 0.0 && req.width <= 110.0 ){
-  		ROS_INFO("Moving to %f position.", req.width);
-		move(req.width);
-		
-	}else if (req.width < 0.0 || req.width > 110.0){
-		ROS_ERROR("Imposible to move to this position. (Width values: [0.0 - 110.0] ");
-		return false;
-	}
-
-	ROS_INFO("Target position reached.");
-  	return true;
-}
-
-bool moveIncrementallySrv(wsg50_common::Incr::Request &req, wsg50_common::Incr::Response &res)
-{
-				
-	if (req.direction == "open"){
-		
-		float nextWidth = currentOpenning + req.increment;
-		
-		if ( (currentOpenning < GRIPPER_MAX_OPEN) && nextWidth < GRIPPER_MAX_OPEN ){
-			move(nextWidth);
-		}else if( nextWidth >= GRIPPER_MAX_OPEN){
-			move(nextWidth);
-			currentOpenning = GRIPPER_MAX_OPEN;
+		void move(double width)  {
+			double open = width / 2.0;
+			std_msgs::msg::Float64 lCommand, rCommand;
+			
+			rCommand.data = open / 1000.0;
+			lCommand.data = rCommand.data * -1.0;
+			
+			vel_pub_r_->publish(rCommand);
+			vel_pub_l_->publish(lCommand);
+			
+			current_opening_ = width;
 		}
 
-	}else if (req.direction == "close"){
-
-		float nextWidth = currentOpenning - req.increment;
-		
-		if ( (currentOpenning > GRIPPER_MIN_OPEN) && nextWidth > GRIPPER_MIN_OPEN ){
-			move(nextWidth);
-		}else if( nextWidth <= GRIPPER_MIN_OPEN){
-			move(nextWidth);
-			currentOpenning = GRIPPER_MIN_OPEN;
+		void moveSrv(const std::shared_ptr<wsg50_common::srv::Move::Request> req,
+               std::shared_ptr<wsg50_common::srv::Move::Response> res){
+			
+			if (req.width >= GRIPPER_MIN_OPEN && req.width <= GRIPPER_MAX_OPEN) {
+				RCLCPP_INFO(this->get_logger(), "Moving to %f position.", req.width);
+				move(req.width);
+			} else {
+				RCLCPP_ERROR(this->get_logger(), "Impossible to move to this position. (Width values: [0.0 - 110.0])");
+			}
 		}
-	}
-	
-}
 
+		void moveIncrementallySrv(const std::shared_ptr<wsg50_common::srv::Incr::Request> req,
+                            std::shared_ptr<wsg50_common::srv::Incr::Response> res){
+		
+			if (req.direction == "open") {
+				float nextWidth = current_opening_ + req.increment;
+				if (nextWidth <= GRIPPER_MAX_OPEN) {
+					move(nextWidth);
+				} else {
+					move(GRIPPER_MAX_OPEN);
+				}
+			} else if (req.direction == "close") {
+				float nextWidth = current_opening_ - req.increment;
+				if (nextWidth >= GRIPPER_MIN_OPEN) {
+					move(nextWidth);
+				} else {
+					move(GRIPPER_MIN_OPEN);
+				}
+			}
+		}
 
-bool homingSrv(std_srvs::Empty::Request &req, std_srvs::Empty::Request &res)
+		void homingSrv(const std::shared_ptr<std_srvs::srv::Empty::Request> req,
+						std::shared_ptr<std_srvs::srv::Empty::Response> res) {
+
+			RCLCPP_INFO(this->get_logger(), "Homing...");
+			move(0.0);
+			RCLCPP_INFO(this->get_logger(), "Home position reached.");
+		}
+
+		void graspSrv(const std::shared_ptr<wsg50_common::srv::Move::Request> req,
+						std::shared_ptr<wsg50_common::srv::Move::Response> res) {
+			
+			RCLCPP_INFO(this->get_logger(), "Grasping...");
+			// TODO: Increase finger force as per original code
+			move(0.0);
+			RCLCPP_INFO(this->get_logger(), "Object grasped");
+		}
+};
+
+int main(int argc, char** argv)
 {
-	ROS_INFO("Homing...");
-	
-	move(0.0);
-	
-	ROS_INFO("Home position reached.");
-	return true;
+  rclcpp::init(argc, argv);
+  auto node = std::make_shared<Wsg50SimDriver>();
+  rclcpp::spin(node);
+  rclcpp::shutdown();
+  return 0;
 }
-
-bool graspSrv(wsg50_common::Move::Request &req, wsg50_common::Move::Request &res)
-{
-	ROS_INFO("Grasping...");
-	
-	// TODO: Increase finger force
-	move(0.0);
-	
-	ROS_INFO("Object grasped");
-	return true;
-}
-
-
-int main(int argc, char** argv){
-	
-	ros::init(argc, argv, "wsg_50_sim_driver");
-
-	ros::NodeHandle nh("~");
-	
-	std::string vel_pub_l_Topic, vel_pub_r_Topic;
-	
-	nh.param<std::string>("vel_pub_l_Topic", vel_pub_l_Topic, "/wsg_50_gl/command");
-	nh.param<std::string>("vel_pub_r_Topic", vel_pub_r_Topic, "/wsg_50_gr/command");
-	
-    currentOpenning = 0.0;
-	
-	ros::ServiceServer moveSS = nh.advertiseService("move", moveSrv);
-	ros::ServiceServer moveIncrementallySS = nh.advertiseService("move_incrementally", moveIncrementallySrv);
-	ros::ServiceServer homingSS = nh.advertiseService("homing", homingSrv);
-	ros::ServiceServer graspSS = nh.advertiseService("grasp", graspSrv);
-	
-	vel_pub_l_ = nh.advertise<std_msgs::Float64>(vel_pub_l_Topic, 1000);
-	vel_pub_r_ = nh.advertise<std_msgs::Float64>(vel_pub_r_Topic, 1000);
-	
-	ros::spin();
-	
-} 
