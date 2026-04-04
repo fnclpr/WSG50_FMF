@@ -42,7 +42,7 @@
 #include <stdlib.h>
 
 #include <rclcpp/rclcpp.hpp>
-#include <std_msgs/Float64.hpp>
+#include <std_msgs/msg/float64.hpp>
 
 #define KEYCODE_A 0x61
 #define KEYCODE_D 0x64
@@ -70,8 +70,8 @@ class Wsg50Teleop : public rclcpp::Node {
     Wsg50Teleop() : Node("wsg_50_teleop"), current_pos_(0.0) { 
       cmd.data = 0;
 
-      vel_pub_r_ = this->create_publisher<std_msgs::Float64>("/wsg_50_gr/command", 1);
-      vel_pub_l_ = this->create_publisher<std_msgs::Float64>("/wsg_50_gl/command", 1);
+      vel_pub_r_ = this->create_publisher<std_msgs::msg::Float64>("/wsg_50_gr/command", 1);
+      vel_pub_l_ = this->create_publisher<std_msgs::msg::Float64>("/wsg_50_gl/command", 1);
 
       this->declare_parameter<double>("open_increment", 0.001);
       this->get_parameter("open_increment", open_increment);
@@ -131,9 +131,9 @@ class Wsg50Teleop : public rclcpp::Node {
 
   private:
     double open_increment, close_increment, grasp_increment, force;
-    std_msgs::Float64 cmd;
+    std_msgs::msg::Float64 cmd;
 
-    rclcpp::Publisher<std_msgs::Float64>::SharedPtr vel_pub_r_, vel_pub_l_;
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr vel_pub_r_, vel_pub_l_;
 };
 
 

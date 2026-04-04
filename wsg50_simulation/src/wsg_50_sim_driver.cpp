@@ -36,9 +36,9 @@
  */
 
 #include <rclcpp/rclcpp.hpp>
-#include <std_msgs/Float64.hpp>
-#include <std_msgs/String.hpp>
-#include <std_srvs/Empty.hpp>
+#include <std_msgs/msg/float64.hpp>
+#include <std_msgs/msg/string.hpp>
+#include <std_srvs/srv/empty.hpp>
 
 #include <wsg50_common/srv/move.hpp>
 #include <wsg50_common/srv/incr.hpp>
@@ -54,8 +54,8 @@ class WSG59SimDriver : public rclcpp::Node {
 			this->declare_parameter<std::string>("vel_pub_l_topic", "/wsg_50_gl/command");
 			this->declare_parameter<std::string>("vel_pub_r_topic", "/wsg_50_gr/command");
 			
-			std_msgs::String vel_pub_l_topic = this->get_parameter("vel_pub_l_topic").as_string();
-    		std_msgs::String vel_pub_r_topic = this->get_parameter("vel_pub_r_topic").as_string();
+			std_msgs::msg::String vel_pub_l_topic = this->get_parameter("vel_pub_l_topic").as_string();
+    		std_msgs::msg::String vel_pub_r_topic = this->get_parameter("vel_pub_r_topic").as_string();
 
 			// Publishers
 			vel_pub_l_ = this->create_publisher<std_msgs::msg::Float64>(vel_pub_l_topic, 10);
