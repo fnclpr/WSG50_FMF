@@ -47,7 +47,7 @@
 #define GRIPPER_MIN_OPEN 0.0
 
 
-class WSG59SimDriver : public rclcpp::Node {
+class WSG50SimDriver : public rclcpp::Node {
 	public:
 		WSG50SimDriver() : Node("wsg_50_sim_driver"), current_opening_(0.0) {
 			// parameters
