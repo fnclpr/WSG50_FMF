@@ -60,6 +60,7 @@ struct termios cooked, raw;
 
 // Function to restore terminal settings on exit
 void quit(int sig) {
+  (void)sig;
   tcsetattr(kfd, TCSANOW, &cooked);
   rclcpp::shutdown();
   exit(0);
@@ -110,15 +111,15 @@ class Wsg50Teleop : public rclcpp::Node {
               current_pos_ = current_pos_ + open_increment;
               cmd.data = current_pos_;
               dirty = true;
-              break;
             }
+            break;
           case KEYCODE_S: // Close gripper
             if (current_pos_ > MIN_GRIPPER_OPEN){
               current_pos_ = current_pos_ - open_increment;
               cmd.data = current_pos_;
               dirty = true;
-              break;
             }
+            break;
         }
         
         if (dirty == true){
@@ -131,6 +132,7 @@ class Wsg50Teleop : public rclcpp::Node {
 
   private:
     double open_increment, close_increment, grasp_increment, force;
+    double current_pos_;
     std_msgs::msg::Float64 cmd;
 
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr vel_pub_r_, vel_pub_l_;

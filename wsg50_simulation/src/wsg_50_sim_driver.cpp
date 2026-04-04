@@ -54,8 +54,8 @@ class WSG50SimDriver : public rclcpp::Node {
 			this->declare_parameter<std::string>("vel_pub_l_topic", "/wsg_50_gl/command");
 			this->declare_parameter<std::string>("vel_pub_r_topic", "/wsg_50_gr/command");
 			
-			std_msgs::msg::String vel_pub_l_topic = this->get_parameter("vel_pub_l_topic").as_string();
-    		std_msgs::msg::String vel_pub_r_topic = this->get_parameter("vel_pub_r_topic").as_string();
+			std::string vel_pub_l_topic = this->get_parameter("vel_pub_l_topic").as_string();
+    		std::string vel_pub_r_topic = this->get_parameter("vel_pub_r_topic").as_string();
 
 			// Publishers
 			vel_pub_l_ = this->create_publisher<std_msgs::msg::Float64>(vel_pub_l_topic, 10);
@@ -65,7 +65,7 @@ class WSG50SimDriver : public rclcpp::Node {
 			move_ss_ = this->create_service<wsg50_common::srv::Move>(
 				"move",
 				std::bind(
-					&Wsg50SimDriver::moveSrv,
+					&WSG50SimDriver::moveSrv,
 					this,
 					std::placeholders::_1,
 					std::placeholders::_2
@@ -75,7 +75,7 @@ class WSG50SimDriver : public rclcpp::Node {
 			move_inc_ss_ = this->create_service<wsg50_common::srv::Incr>(
 				"move_incrementally",
 				std::bind(
-					&Wsg50SimDriver::moveIncrementallySrv,
+					&WSG50SimDriver::moveIncrementallySrv,
 					this,
 					std::placeholders::_1,
 					std::placeholders::_2
@@ -85,7 +85,7 @@ class WSG50SimDriver : public rclcpp::Node {
 			homing_ss_ = this->create_service<std_srvs::srv::Empty>(
 				"homing",
 				std::bind(
-					&Wsg50SimDriver::homingSrv,
+					&WSG50SimDriver::homingSrv,
 					this,
 					std::placeholders::_1,
 					std::placeholders::_2
@@ -95,7 +95,7 @@ class WSG50SimDriver : public rclcpp::Node {
 			grasp_ss_ = this->create_service<wsg50_common::srv::Move>(
 				"grasp",
 				std::bind(
-					&Wsg50SimDriver::graspSrv,
+					&WSG50SimDriver::graspSrv,
 					this,
 					std::placeholders::_1,
 					std::placeholders::_2
@@ -105,6 +105,8 @@ class WSG50SimDriver : public rclcpp::Node {
 		}
 	
 	private:
+		double current_opening_;
+		
 		rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr vel_pub_l_;
 		rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr vel_pub_r_;
 		
@@ -129,9 +131,10 @@ class WSG50SimDriver : public rclcpp::Node {
 		void moveSrv(const std::shared_ptr<wsg50_common::srv::Move::Request> req,
                std::shared_ptr<wsg50_common::srv::Move::Response> res){
 			
-			if (req.width >= GRIPPER_MIN_OPEN && req.width <= GRIPPER_MAX_OPEN) {
-				RCLCPP_INFO(this->get_logger(), "Moving to %f position.", req.width);
-				move(req.width);
+			(void)res;
+			if (req->width >= GRIPPER_MIN_OPEN && req->width <= GRIPPER_MAX_OPEN) {
+				RCLCPP_INFO(this->get_logger(), "Moving to %f position.", req->width);
+				move(req->width);
 			} else {
 				RCLCPP_ERROR(this->get_logger(), "Impossible to move to this position. (Width values: [0.0 - 110.0])");
 			}
@@ -140,15 +143,16 @@ class WSG50SimDriver : public rclcpp::Node {
 		void moveIncrementallySrv(const std::shared_ptr<wsg50_common::srv::Incr::Request> req,
                             std::shared_ptr<wsg50_common::srv::Incr::Response> res){
 		
-			if (req.direction == "open") {
-				float nextWidth = current_opening_ + req.increment;
+			(void)res;
+			if (req->direction == "open") {
+				float nextWidth = current_opening_ + req->increment;
 				if (nextWidth <= GRIPPER_MAX_OPEN) {
 					move(nextWidth);
 				} else {
 					move(GRIPPER_MAX_OPEN);
 				}
-			} else if (req.direction == "close") {
-				float nextWidth = current_opening_ - req.increment;
+			} else if (req->direction == "close") {
+				float nextWidth = current_opening_ - req->increment;
 				if (nextWidth >= GRIPPER_MIN_OPEN) {
 					move(nextWidth);
 				} else {
@@ -160,6 +164,8 @@ class WSG50SimDriver : public rclcpp::Node {
 		void homingSrv(const std::shared_ptr<std_srvs::srv::Empty::Request> req,
 						std::shared_ptr<std_srvs::srv::Empty::Response> res) {
 
+			(void)req;
+			(void)res;
 			RCLCPP_INFO(this->get_logger(), "Homing...");
 			move(0.0);
 			RCLCPP_INFO(this->get_logger(), "Home position reached.");
@@ -168,6 +174,8 @@ class WSG50SimDriver : public rclcpp::Node {
 		void graspSrv(const std::shared_ptr<wsg50_common::srv::Move::Request> req,
 						std::shared_ptr<wsg50_common::srv::Move::Response> res) {
 			
+			(void)req;
+			(void)res;
 			RCLCPP_INFO(this->get_logger(), "Grasping...");
 			// TODO: Increase finger force as per original code
 			move(0.0);
@@ -178,7 +186,7 @@ class WSG50SimDriver : public rclcpp::Node {
 int main(int argc, char** argv)
 {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<Wsg50SimDriver>();
+  auto node = std::make_shared<WSG50SimDriver>();
   rclcpp::spin(node);
   rclcpp::shutdown();
   return 0;
