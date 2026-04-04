@@ -24,12 +24,21 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+# --- Executables ---
 add_executable(wsg_50_sim_keyboard_teleop src/wsg_50_keyboard_teleop.cpp)
 ament_target_dependencies(wsg_50_sim_keyboard_teleop rclcpp std_msgs std_srvs wsg50_common)
+
 add_executable(wsg_50_sim_driver src/wsg_50_sim_driver.cpp)
 ament_target_dependencies(wsg_50_sim_driver rclcpp std_msgs std_srvs wsg50_common)
 
+# --- Install executables ---
+install(TARGETS
+  wsg_50_sim_keyboard_teleop
+  wsg_50_sim_driver
+  DESTINATION lib/${PROJECT_NAME}
+)
 
+# --- Install other resources ---
 install(
   DIRECTORY meshes urdf launch controllers
   DESTINATION share/${PROJECT_NAME}
