@@ -122,9 +122,9 @@ class Wsg50Teleop : public rclcpp::Node {
         }
         
         if (dirty == true){
-          vel_pub_r_.publish(cmd);
+          vel_pub_r_->publish(cmd);
           cmd.data = cmd.data * -1.0; // Adapt for the left gripper
-          vel_pub_l_.publish(cmd);
+          vel_pub_l_->publish(cmd);
         }
       }
     }
